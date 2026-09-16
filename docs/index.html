@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenoti Sales Sync — Manual Control</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171d2b;
+    --panel-2: #1e2637;
+    --border: #2a3346;
+    --text: #e8ecf4;
+    --text-dim: #93a0b8;
+    --accent: #5b8def;
+    --accent-2: #4472d1;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #0b0f18, #0f1420 300px);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+  }
+  .sub { color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input[type="date"], input[type="text"], input[type="password"], select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .radio-group { display: flex; gap: 10px; margin-top: 6px; }
+  .radio-option {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .radio-option.selected { border-color: var(--accent); background: rgba(91,141,239,0.08); }
+  .radio-option input { display: none; }
+  .radio-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .radio-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .radio-option.danger.selected { border-color: var(--red); background: rgba(248,113,113,0.08); }
+  .quick-ranges { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .qr-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .qr-btn:hover { border-color: var(--accent); color: var(--text); }
+  button.run {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s;
+  }
+  button.run:hover { background: var(--accent-2); }
+  button.run:disabled { background: #38425a; cursor: not-allowed; }
+  button.run.danger { background: var(--red); }
+  button.run.danger:hover { background: #ef4444; }
+  .log {
+    margin-top: 4px;
+    max-height: 360px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .log-line { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); white-space: pre-wrap; word-break: break-word; }
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.info { color: var(--text-dim); }
+  .log-line.warn { color: var(--amber); }
+  .summary {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 100px;
+  }
+  .stat .num { font-size: 20px; font-weight: 700; }
+  .stat .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .settings-toggle {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-align: right;
+    margin-bottom: -8px;
+  }
+  .settings-toggle:hover { color: var(--accent); }
+  #settingsPanel { display: none; }
+  .hint { font-size: 11.5px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Zenoti Sales Sync</h1>
+  <div class="sub">Manual control panel — runs entirely against your Supabase project, no local server needed.</div>
+
+  <div class="settings-toggle" onclick="toggleSettings()">⚙ Connection settings</div>
+  <div class="card" id="settingsPanel">
+    <h2>Connection</h2>
+    <label>Function URL</label>
+    <input type="text" id="functionUrl" placeholder="https://YOUR_PROJECT.supabase.co/functions/v1/zenoti-sync">
+    <label>Trigger secret</label>
+    <input type="password" id="secret" placeholder="Your SYNC_TRIGGER_SECRET">
+    <div class="hint">Saved in this browser only (localStorage) — never sent anywhere except your own function.</div>
+  </div>
+
+  <div class="card">
+    <h2>Scope</h2>
+    <label>Company</label>
+    <select id="company">
+      <option value="">All companies (JCB + Spalon)</option>
+      <option value="jcb">JCB only</option>
+      <option value="spalon">Spalon only</option>
+    </select>
+
+    <label>Date range</label>
+    <div class="row">
+      <div>
+        <label style="margin-top:0">From</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div>
+        <label style="margin-top:0">To</label>
+        <input type="date" id="toDate">
+      </div>
+    </div>
+    <div class="quick-ranges">
+      <div class="qr-btn" onclick="setRange('yesterday')">Yesterday</div>
+      <div class="qr-btn" onclick="setRange('last7')">Last 7 days</div>
+      <div class="qr-btn" onclick="setRange('last30')">Last 30 days</div>
+      <div class="qr-btn" onclick="setRange('lastMonth')">Last calendar month</div>
+      <div class="qr-btn" onclick="setRange('thisMonth')">This month so far</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Mode</h2>
+    <div class="radio-group">
+      <label class="radio-option selected" id="opt-overwrite">
+        <input type="radio" name="syncMode" value="overwrite" checked onclick="selectMode('overwrite')">
+        <div class="radio-title">Overwrite</div>
+        <div class="radio-desc">Pull fresh data and update matching rows. Nothing already in the table gets removed — safe default.</div>
+      </label>
+      <label class="radio-option danger" id="opt-resync">
+        <input type="radio" name="syncMode" value="resync" onclick="selectMode('resync')">
+        <div class="radio-title">Delete &amp; Resync</div>
+        <div class="radio-desc">Deletes every row for this company/center/date range first, then pulls fresh — use if data looks wrong and you want a clean slate.</div>
+      </label>
+    </div>
+  </div>
+
+  <button class="run" id="runBtn" onclick="runSync()">Run Sync</button>
+
+  <div class="card" id="progressCard" style="display:none">
+    <h2>Progress</h2>
+    <div class="summary" id="summary"></div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_URL = "https://orgvftwvifhbciyzeboh.supabase.co/functions/v1/zenoti-sync";
+
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function loadSettings() {
+  document.getElementById('functionUrl').value = localStorage.getItem('zenoti_fn_url') || DEFAULT_URL;
+  document.getElementById('secret').value = localStorage.getItem('zenoti_secret') || '';
+  document.getElementById('functionUrl').addEventListener('change', e => localStorage.setItem('zenoti_fn_url', e.target.value));
+  document.getElementById('secret').addEventListener('change', e => localStorage.setItem('zenoti_secret', e.target.value));
+}
+
+function selectMode(mode) {
+  document.getElementById('opt-overwrite').classList.toggle('selected', mode === 'overwrite');
+  document.getElementById('opt-resync').classList.toggle('selected', mode === 'resync');
+  const btn = document.getElementById('runBtn');
+  btn.classList.toggle('danger', mode === 'resync');
+  btn.textContent = mode === 'resync' ? 'Delete & Resync' : 'Run Sync';
+}
+
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+
+function setRange(kind) {
+  const today = new Date(); today.setUTCHours(0,0,0,0);
+  let from, to;
+  if (kind === 'yesterday') {
+    from = to = new Date(today); from.setUTCDate(from.getUTCDate() - 1); to = new Date(from);
+  } else if (kind === 'last7') {
+    to = new Date(today); to.setUTCDate(to.getUTCDate() - 1);
+    from = new Date(today); from.setUTCDate(from.getUTCDate() - 7);
+  } else if (kind === 'last30') {
+    to = new Date(today); to.setUTCDate(to.getUTCDate() - 1);
+    from = new Date(today); from.setUTCDate(from.getUTCDate() - 30);
+  } else if (kind === 'lastMonth') {
+    const firstOfThisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    to = new Date(firstOfThisMonth); to.setUTCDate(to.getUTCDate() - 1);
+    from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
+  } else if (kind === 'thisMonth') {
+    from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    to = new Date(today); to.setUTCDate(to.getUTCDate() - 1);
+    if (to < from) to = new Date(from);
+  }
+  document.getElementById('fromDate').value = fmtDate(from);
+  document.getElementById('toDate').value = fmtDate(to);
+}
+
+function log(msg, cls) {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + (cls || 'info');
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateSummary(stats) {
+  document.getElementById('summary').innerHTML = `
+    <div class="stat"><div class="num">${stats.centersDone}</div><div class="lbl">Centers synced</div></div>
+    <div class="stat"><div class="num">${stats.rowsTotal.toLocaleString()}</div><div class="lbl">Rows written</div></div>
+    <div class="stat"><div class="num" style="color:${stats.errors ? 'var(--red)' : 'var(--text)'}">${stats.errors}</div><div class="lbl">Errors</div></div>
+    <div class="stat"><div class="num">${stats.batches}</div><div class="lbl">Batches</div></div>
+  `;
+}
+
+async function runSync() {
+  const url = document.getElementById('functionUrl').value.trim();
+  const secret = document.getElementById('secret').value.trim();
+  const company = document.getElementById('company').value;
+  const fromDate = document.getElementById('fromDate').value;
+  const toDate = document.getElementById('toDate').value;
+  const mode = document.querySelector('input[name="syncMode"]:checked').value;
+
+  if (!url || !secret) { alert('Set the function URL and trigger secret first (⚙ Connection settings).'); toggleSettings(); return; }
+  if (!fromDate || !toDate) { alert('Pick a from and to date.'); return; }
+  if (mode === 'resync') {
+    const ok = confirm(`This will DELETE all existing rows for ${company || 'JCB + Spalon'} between ${fromDate} and ${toDate}, then re-pull from Zenoti. This cannot be undone. Continue?`);
+    if (!ok) return;
+  }
+
+  document.getElementById('progressCard').style.display = 'block';
+  document.getElementById('log').innerHTML = '';
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+
+  const stats = { centersDone: 0, rowsTotal: 0, errors: 0, batches: 0 };
+  updateSummary(stats);
+
+  let reqBody = {
+    mode: 'custom',
+    start_date: fromDate,
+    end_date: toDate,
+    centers_per_call: 4,
+    ...(company ? { company_slug: company } : {}),
+    ...(mode === 'resync' ? { delete_before_sync: true } : {}),
+  };
+
+  log(`Starting ${mode === 'resync' ? 'delete & resync' : 'overwrite sync'} for ${fromDate} → ${toDate}${company ? ' (' + company + ')' : ' (all companies)'}`, 'info');
+
+  try {
+    let more = true;
+    while (more) {
+      stats.batches++;
+      log(`Batch ${stats.batches}: requesting…`, 'info');
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + secret },
+        body: JSON.stringify(reqBody),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        log(`Batch ${stats.batches} failed: HTTP ${res.status} — ${text.slice(0, 300)}`, 'err');
+        stats.errors++;
+        break;
+      }
+
+      const data = await res.json();
+
+      for (const r of (data.results || [])) {
+        stats.centersDone++;
+        if (r.error) {
+          stats.errors++;
+          log(`✗ ${r.company} / ${r.center}: ${r.error}`, 'err');
+        } else {
+          stats.rowsTotal += r.rows || 0;
+          const tag = r.deleted_before_sync ? ' (deleted + resynced)' : '';
+          log(`✓ ${r.company} / ${r.center}: ${r.rows} rows${tag}`, 'ok');
+        }
+      }
+
+      updateSummary(stats);
+
+      if (data.pending_center_ids && data.pending_center_ids.length > 0) {
+        log(`${data.pending_center_ids.length} center(s) remaining — continuing automatically…`, 'warn');
+        reqBody = data.next_request;
+        more = true;
+      } else {
+        more = false;
+      }
+    }
+
+    log(`Done. ${stats.centersDone} centers processed, ${stats.rowsTotal.toLocaleString()} rows written, ${stats.errors} error(s).`, stats.errors ? 'warn' : 'ok');
+  } catch (e) {
+    log('Unexpected error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+loadSettings();
+setRange('yesterday');
+</script>
+</body>
+</html>
