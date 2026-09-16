@@ -1,0 +1,11 @@
+# Supabase local dev artifacts
+.supabase/
+supabase/.temp/
+
+# Never commit real secrets — the seed file is a template only
+supabase/seed_companies_filled.sql
+
+# OS/editor junk
+.DS_Store
+*.log
+node_modules/
