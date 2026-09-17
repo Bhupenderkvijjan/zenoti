@@ -158,8 +158,13 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Zenoti Sales Sync</h1>
-  <div class="sub">Manual control panel — runs entirely against your Supabase project, no local server needed.</div>
+  <div class="topbar" style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h1>Zenoti Sales Sync</h1>
+      <div class="sub">Manual control panel — runs entirely against your Supabase project, no local server needed.</div>
+    </div>
+    <a href="./reports.html" style="color:var(--text-dim);font-size:13px;text-decoration:none;">Reports →</a>
+  </div>
 
   <div class="settings-toggle" onclick="toggleSettings()">⚙ Connection settings</div>
   <div class="card" id="settingsPanel">
