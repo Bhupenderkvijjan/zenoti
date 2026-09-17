@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenoti Reports</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #171d2b; --panel-2: #1e2637; --border: #2a3346;
+    --text: #e8ecf4; --text-dim: #93a0b8; --accent: #5b8def; --accent-2: #4472d1;
+    --green: #34d399; --red: #f87171; --amber: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: linear-gradient(180deg, #0b0f18, #0f1420 300px);
+    color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh; padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .topbar { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+  .sub { color: var(--text-dim); font-size: 13px; }
+  a.nav-link { color: var(--text-dim); font-size: 13px; text-decoration: none; }
+  a.nav-link:hover { color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 0 0 12px; font-weight: 600; }
+  label { display:block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; margin-top: 12px; }
+  label:first-of-type { margin-top: 0; }
+  select, input[type="date"] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 11px; font-size: 14px; font-family: inherit;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+  .row { display:flex; gap:12px; flex-wrap: wrap; }
+  .row > div { flex:1; min-width: 140px; }
+  .quick-ranges { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .qr-btn { background: var(--panel-2); border:1px solid var(--border); color: var(--text-dim); border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .qr-btn:hover { border-color: var(--accent); color: var(--text); }
+  button.run {
+    background: var(--accent); color:white; border:none; border-radius:8px; padding:12px 20px;
+    font-size:14px; font-weight:600; cursor:pointer; margin-top: 14px;
+  }
+  button.run:hover { background: var(--accent-2); }
+  button.run:disabled { background:#38425a; cursor:not-allowed; }
+  .kpis { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 16px; }
+  .kpi { flex:1; min-width: 150px; background: var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .kpi .val { font-size: 24px; font-weight: 700; }
+  .kpi .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+  .view-toggle { display:flex; gap:8px; margin-bottom: 12px; }
+  .vt-btn { background: var(--panel-2); border:1px solid var(--border); color: var(--text-dim); border-radius:6px; padding:7px 14px; font-size:13px; cursor:pointer; }
+  .vt-btn.active { border-color: var(--accent); color: var(--text); background: rgba(91,141,239,0.1); }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align:left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--text-dim); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.03em; position: sticky; top:0; background: var(--panel); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+  .empty-state { color: var(--text-dim); font-size: 13px; padding: 24px; text-align: center; }
+  .chart-wrap { position: relative; height: 380px; }
+  .err { color: var(--red); font-size: 13px; padding: 12px; background: rgba(248,113,113,0.08); border-radius: 8px; border: 1px solid rgba(248,113,113,0.3); }
+  .settings-toggle { font-size: 12px; color: var(--text-dim); cursor: pointer; text-align: right; margin-bottom: -8px; }
+  .settings-toggle:hover { color: var(--accent); }
+  #settingsPanel { display:none; }
+  .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Zenoti Reports</h1>
+      <div class="sub">Flexible date-range reporting against your Supabase sales data.</div>
+    </div>
+    <a class="nav-link" href="./index.html">← Sync control panel</a>
+  </div>
+
+  <div class="settings-toggle" onclick="toggleSettings()">⚙ Connection settings</div>
+  <div class="card" id="settingsPanel">
+    <h2>Connection</h2>
+    <label>Supabase URL</label>
+    <input type="text" id="supabaseUrl" placeholder="https://YOUR_PROJECT.supabase.co">
+    <label>Anon key</label>
+    <input type="text" id="anonKey" placeholder="Your anon/publishable key">
+    <div class="hint">Saved in this browser only (localStorage). This is the public read-only key, not your service role key.</div>
+  </div>
+
+  <div class="card">
+    <h2>Report</h2>
+    <select id="reportSelect" onchange="onReportChange()"></select>
+
+    <div class="row">
+      <div>
+        <label>From</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" id="toDate">
+      </div>
+      <div id="companyFilterWrap">
+        <label>Company</label>
+        <select id="companyFilter">
+          <option value="">All companies</option>
+          <option value="jcb">JCB only</option>
+          <option value="spalon">Spalon only</option>
+        </select>
+      </div>
+    </div>
+    <div class="quick-ranges">
+      <div class="qr-btn" onclick="setRange('yesterday')">Yesterday</div>
+      <div class="qr-btn" onclick="setRange('last7')">Last 7 days</div>
+      <div class="qr-btn" onclick="setRange('last30')">Last 30 days</div>
+      <div class="qr-btn" onclick="setRange('lastMonth')">Last calendar month</div>
+      <div class="qr-btn" onclick="setRange('thisMonth')">This month so far</div>
+    </div>
+    <button class="run" id="runBtn" onclick="runReport()">Run Report</button>
+  </div>
+
+  <div id="resultsArea"></div>
+</div>
+
+<script>
+const REPORTS = [
+  {
+    id: 'sales_summary',
+    label: 'Sales Summary (by day)',
+    rpc: 'report_sales_summary',
+    usesCompany: true,
+    columns: [
+      { key: 'sale_date', label: 'Date' },
+      { key: 'company_slug', label: 'Company' },
+      { key: 'invoice_count', label: 'Invoices', numeric: true },
+      { key: 'total_sale_price', label: 'Sale Price', numeric: true, money: true },
+      { key: 'total_discount', label: 'Discount', numeric: true, money: true },
+      { key: 'total_tax', label: 'Tax', numeric: true, money: true },
+      { key: 'total_final_sale', label: 'Final Sale', numeric: true, money: true },
+    ],
+    kpis: [
+      { label: 'Invoices', calc: rows => sum(rows, 'invoice_count'), format: 'int' },
+      { label: 'Final Sale', calc: rows => sum(rows, 'total_final_sale'), format: 'money' },
+      { label: 'Discount', calc: rows => sum(rows, 'total_discount'), format: 'money' },
+      { label: 'Tax', calc: rows => sum(rows, 'total_tax'), format: 'money' },
+    ],
+    chart: { type: 'line', labelKey: 'sale_date', valueKey: 'total_final_sale', groupKey: 'company_slug', title: 'Final Sale by Day' },
+  },
+  {
+    id: 'sales_by_employee',
+    label: 'Sales by Employee',
+    rpc: 'report_sales_by_employee',
+    usesCompany: true,
+    columns: [
+      { key: 'employee_name', label: 'Employee' },
+      { key: 'employee_code', label: 'Code' },
+      { key: 'company_slug', label: 'Company' },
+      { key: 'invoice_count', label: 'Invoices', numeric: true },
+      { key: 'total_sale_price', label: 'Sale Price', numeric: true, money: true },
+      { key: 'total_discount', label: 'Discount', numeric: true, money: true },
+      { key: 'total_final_sale', label: 'Final Sale', numeric: true, money: true },
+    ],
+    kpis: [
+      { label: 'Employees', calc: rows => new Set(rows.map(r => r.employee_code)).size, format: 'int' },
+      { label: 'Final Sale', calc: rows => sum(rows, 'total_final_sale'), format: 'money' },
+      { label: 'Invoices', calc: rows => sum(rows, 'invoice_count'), format: 'int' },
+    ],
+    chart: { type: 'bar', labelKey: 'employee_name', valueKey: 'total_final_sale', title: 'Top Employees by Final Sale', topN: 15 },
+  },
+  {
+    id: 'adjustments_jcb',
+    label: 'JCB Adjustments',
+    rpc: 'report_adjustments_jcb',
+    usesCompany: false,
+    columns: [
+      { key: 'adjusted_type', label: 'Type' },
+      { key: 'employee_name', label: 'Employee' },
+      { key: 'employee_code', label: 'Code' },
+      { key: 'adjustment_value', label: 'Value', numeric: true, money: true },
+    ],
+    kpis: [
+      { label: 'Total Adjustment', calc: rows => sum(rows, 'adjustment_value'), format: 'money' },
+      { label: 'Employees', calc: rows => new Set(rows.map(r => r.employee_code)).size, format: 'int' },
+      { label: 'Types', calc: rows => new Set(rows.map(r => r.adjusted_type)).size, format: 'int' },
+    ],
+    chart: { type: 'bar', labelKey: 'adjusted_type', valueKey: 'adjustment_value', title: 'Adjustment Value by Type', aggregate: true },
+  },
+];
+
+let currentView = 'table';
+let chartInstance = null;
+let lastRows = [];
+let lastReport = null;
+
+function sum(rows, key) { return rows.reduce((a, r) => a + (Number(r[key]) || 0), 0); }
+function fmtMoney(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
+function fmtInt(n) { return Number(n || 0).toLocaleString('en-IN'); }
+
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function loadSettings() {
+  document.getElementById('supabaseUrl').value = localStorage.getItem('zenoti_sb_url') || 'https://orgvftwvifhbciyzeboh.supabase.co';
+  document.getElementById('anonKey').value = localStorage.getItem('zenoti_anon_key') || '';
+  document.getElementById('supabaseUrl').addEventListener('change', e => localStorage.setItem('zenoti_sb_url', e.target.value));
+  document.getElementById('anonKey').addEventListener('change', e => localStorage.setItem('zenoti_anon_key', e.target.value));
+}
+
+function populateReportSelect() {
+  const sel = document.getElementById('reportSelect');
+  sel.innerHTML = REPORTS.map(r => `<option value="${r.id}">${r.label}</option>`).join('');
+  onReportChange();
+}
+function onReportChange() {
+  const report = REPORTS.find(r => r.id === document.getElementById('reportSelect').value);
+  document.getElementById('companyFilterWrap').style.display = report.usesCompany ? 'block' : 'none';
+}
+
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+function setRange(kind) {
+  const today = new Date(); today.setUTCHours(0,0,0,0);
+  let from, to;
+  if (kind === 'yesterday') { from = new Date(today); from.setUTCDate(from.getUTCDate()-1); to = new Date(from); }
+  else if (kind === 'last7') { to = new Date(today); to.setUTCDate(to.getUTCDate()-1); from = new Date(today); from.setUTCDate(from.getUTCDate()-7); }
+  else if (kind === 'last30') { to = new Date(today); to.setUTCDate(to.getUTCDate()-1); from = new Date(today); from.setUTCDate(from.getUTCDate()-30); }
+  else if (kind === 'lastMonth') { const f = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)); to = new Date(f); to.setUTCDate(to.getUTCDate()-1); from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1)); }
+  else if (kind === 'thisMonth') { from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)); to = new Date(today); to.setUTCDate(to.getUTCDate()-1); if (to < from) to = new Date(from); }
+  document.getElementById('fromDate').value = fmtDate(from);
+  document.getElementById('toDate').value = fmtDate(to);
+}
+
+async function runReport() {
+  const url = document.getElementById('supabaseUrl').value.trim();
+  const key = document.getElementById('anonKey').value.trim();
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const company = document.getElementById('companyFilter').value;
+  const report = REPORTS.find(r => r.id === document.getElementById('reportSelect').value);
+
+  if (!url || !key) { alert('Set your Supabase URL and anon key first (⚙ Connection settings).'); toggleSettings(); return; }
+  if (!from || !to) { alert('Pick a from and to date.'); return; }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('resultsArea').innerHTML = '<div class="card"><div class="empty-state">Loading…</div></div>';
+
+  const body = { p_start: from, p_end: to };
+  if (report.usesCompany) body.p_company = company || null;
+
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/${report.rpc}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+    const rows = await res.json();
+    lastRows = rows;
+    lastReport = report;
+    renderResults(report, rows);
+  } catch (e) {
+    document.getElementById('resultsArea').innerHTML = `<div class="card"><div class="err">Error: ${e.message}</div></div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderResults(report, rows) {
+  const area = document.getElementById('resultsArea');
+  if (!rows || rows.length === 0) {
+    area.innerHTML = '<div class="card"><div class="empty-state">No data for this range.</div></div>';
+    return;
+  }
+
+  const kpisHtml = report.kpis.map(k => {
+    const v = k.calc(rows);
+    const formatted = k.format === 'money' ? fmtMoney(v) : fmtInt(v);
+    return `<div class="kpi"><div class="val">${formatted}</div><div class="lbl">${k.label}</div></div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="kpis">${kpisHtml}</div>
+    <div class="card">
+      <div class="view-toggle">
+        <div class="vt-btn ${currentView === 'table' ? 'active' : ''}" onclick="switchView('table')">Table</div>
+        <div class="vt-btn ${currentView === 'chart' ? 'active' : ''}" onclick="switchView('chart')">Chart</div>
+      </div>
+      <div id="viewContent"></div>
+    </div>
+  `;
+  renderView(report, rows);
+}
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.vt-btn').forEach((el, i) => el.classList.toggle('active', (view === 'table' && i === 0) || (view === 'chart' && i === 1)));
+  renderView(lastReport, lastRows);
+}
+
+function renderView(report, rows) {
+  const el = document.getElementById('viewContent');
+  if (!el) return;
+  if (currentView === 'table') {
+    el.innerHTML = renderTable(report, rows);
+  } else {
+    el.innerHTML = '<div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>';
+    renderChart(report, rows);
+  }
+}
+
+function renderTable(report, rows) {
+  const head = report.columns.map(c => `<th>${c.label}</th>`).join('');
+  const body = rows.map(r => {
+    const cells = report.columns.map(c => {
+      let v = r[c.key];
+      if (c.money) v = fmtMoney(v);
+      else if (c.numeric) v = fmtInt(v);
+      return `<td>${v ?? ''}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<div class="table-scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderChart(report, rows) {
+  const cfg = report.chart;
+  let labels, datasets;
+
+  if (cfg.aggregate) {
+    const map = {};
+    rows.forEach(r => { map[r[cfg.labelKey]] = (map[r[cfg.labelKey]] || 0) + Number(r[cfg.valueKey] || 0); });
+    labels = Object.keys(map);
+    datasets = [{ label: cfg.title, data: Object.values(map), backgroundColor: '#5b8def' }];
+  } else if (cfg.groupKey) {
+    const groups = {};
+    rows.forEach(r => {
+      const g = r[cfg.groupKey] || 'all';
+      groups[g] = groups[g] || {};
+      groups[g][r[cfg.labelKey]] = (groups[g][r[cfg.labelKey]] || 0) + Number(r[cfg.valueKey] || 0);
+    });
+    labels = [...new Set(rows.map(r => r[cfg.labelKey]))].sort();
+    const palette = ['#5b8def', '#34d399', '#fbbf24', '#f87171'];
+    datasets = Object.keys(groups).map((g, i) => ({
+      label: g,
+      data: labels.map(l => groups[g][l] || 0),
+      borderColor: palette[i % palette.length],
+      backgroundColor: palette[i % palette.length],
+      fill: false,
+    }));
+  } else {
+    let sorted = [...rows].sort((a, b) => Number(b[cfg.valueKey]) - Number(a[cfg.valueKey]));
+    if (cfg.topN) sorted = sorted.slice(0, cfg.topN);
+    labels = sorted.map(r => r[cfg.labelKey]);
+    datasets = [{ label: cfg.title, data: sorted.map(r => Number(r[cfg.valueKey] || 0)), backgroundColor: '#5b8def' }];
+  }
+
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('chartCanvas').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: cfg.type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1, labels: { color: '#93a0b8' } }, title: { display: true, text: cfg.title, color: '#e8ecf4' } },
+      scales: {
+        x: { ticks: { color: '#93a0b8', maxRotation: 60, minRotation: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#93a0b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      },
+    },
+  });
+}
+
+loadSettings();
+populateReportSelect();
+setRange('last30');
+</script>
+</body>
+</html>
