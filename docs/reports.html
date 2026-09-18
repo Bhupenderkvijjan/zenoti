@@ -398,12 +398,11 @@ async function loadSyncStatus() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const rows = await res.json();
     const s = rows[0] || {};
-    const lastSync = s.last_sync_finished_at ? new Date(s.last_sync_finished_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-    const statusColor = s.last_sync_status === 'success' ? 'var(--green)' : (s.last_sync_status === 'error' ? 'var(--red)' : 'var(--text-dim)');
     bar.innerHTML = `
-      <div><span style="color:var(--text-dim);font-size:12px;">Last sync:</span> <strong>${lastSync}</strong> <span style="color:${statusColor};font-size:12px;">(${s.last_sync_status || '—'}${s.last_sync_rows != null ? ', ' + s.last_sync_rows + ' rows' : ''})</span></div>
-      <div><span style="color:var(--text-dim);font-size:12px;">Total rows:</span> <strong>${fmtInt(s.total_rows)}</strong></div>
-      <div><span style="color:var(--text-dim);font-size:12px;">Data range:</span> <strong>${s.earliest_sold_on || '—'} → ${s.latest_sold_on || '—'}</strong></div>
+      <div><span style="color:var(--text-dim);font-size:12px;">Latest serviced date in table:</span> <strong>${s.max_serviced_on || '—'}</strong></div>
+      <div><span style="color:var(--text-dim);font-size:12px;">Rows on that date:</span> <strong>${fmtInt(s.rows_on_max_serviced_on)}</strong></div>
+      <div><span style="color:var(--text-dim);font-size:12px;">Total rows (all history):</span> <strong>${fmtInt(s.total_rows)}</strong></div>
+      <div><span style="color:var(--text-dim);font-size:12px;">Sold-on data range:</span> <strong>${s.earliest_sold_on || '—'} → ${s.latest_sold_on || '—'}</strong></div>
       <div style="margin-left:auto;"><span class="qr-btn" onclick="loadSyncStatus()">↻ Refresh</span></div>
     `;
   } catch (e) {
